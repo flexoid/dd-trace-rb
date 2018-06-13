@@ -11,13 +11,12 @@ module Datadog
         # Based on regexp from https://github.com/DataDog/dd-trace-java/blob/master/dd-trace-ot/src/main/java/datadog/opentracing/decorators/URLAsResourceName.java#L16
         # Matches any path segments with numbers in them.
         CAPTURE_PATH_SEGMENTS_WITH_NUMBERS_REGEXP = %r{(?<=/)(?:[^/\d]*[\d]+[^?/]*)}
-        TOKENIZE_INDEX_NAME_REGEXP = %r{^(/?[^\d/]+)(?:\d[^/]+)}
 
         module_function
 
         def format_url(url)
-          url.gsub(TOKENIZE_INDEX_NAME_REGEXP, '\1?'.freeze)
-             .gsub(CAPTURE_PATH_SEGMENTS_WITH_NUMBERS_REGEXP, PLACEHOLDER)
+          sanitize_index_in_url(url)
+            .gsub(CAPTURE_PATH_SEGMENTS_WITH_NUMBERS_REGEXP, PLACEHOLDER)
         end
 
         def format_body(body, options = {})
@@ -102,6 +101,16 @@ module Datadog
             # If it can't parse/dump, don't raise an error.
             fail_value
           end
+        end
+
+        def sanitize_index_in_url(url)
+          index_end = url.index('/'.freeze, 1)
+          return url unless index_end
+
+          index_part = url.slice(0, index_end)
+          index_part.gsub!(/\d+/, '?')
+
+          index_part << url.slice(index_end..-1)
         end
       end
     end
